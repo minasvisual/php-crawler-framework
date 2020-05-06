@@ -14,7 +14,7 @@
 
 Copy app/examples/example.php to app/models/ (if folder not exists, create it!)
 
-Open playground and choice model and click in "Run model"
+Open playground (http://localhost/path/to/application/) and choose example model and click in "Get by model"
 
 ## Thirty part libs
 
@@ -23,6 +23,7 @@ Open playground and choice model and click in "Run model"
 - https://github.com/IonicaBizau/scrape-it
 - https://github.com/peppeocchi/php-cron-scheduler
 - https://github.com/swiftmailer/swiftmailer
+- https://github.com/guzzle/guzzle.git
 
 ## Contribute
 

@@ -10,7 +10,6 @@ $Engine = new Engine($config);
 $Helpers = new Helpers($config);
 
 $models = $Helpers->getModels();
-$Helpers->inspect($models);
 // Read $url and $sel from request ($_POST | $_GET)
 $modelName = @$_POST['model'] ?: @$_GET['model'];
 $url = @$_POST['url'] ?: @$_GET['url'];
@@ -18,8 +17,6 @@ $sel = @$_POST['sel'] ?: @$_GET['sel'];
 $go  = @$_POST['go']  ?: @$_GET['go'];
 $rm = strtoupper(getenv('REQUEST_METHOD') ?: $_SERVER['REQUEST_METHOD']);
 
-
-            $Helpers->inspect("Request $go e $rm");
 // var_export(compact('url', 'sel', 'go')+[$rm]+$_SERVER);
 if ( $rm == 'POST' ) {
     // Results acumulator
@@ -28,10 +25,7 @@ if ( $rm == 'POST' ) {
     // If we have $url to parse and $sel (selector) to fetch, we a good to go
     if($modelName && $go == 'json') {
         try {
-            $Helpers->inspect("Entrou em URL" . $modelName);
             $return = $Engine->processModel($modelName);
-          
-            //$Helpers->inspect($return);
         }
         catch(Exception $ex) {
             $error = $ex;
@@ -39,10 +33,16 @@ if ( $rm == 'POST' ) {
     } 
     else if( $go == 'cron') {
         try {
-            $Helpers->inspect("Entrou em batch go " . $go);
             $return = $Engine->processModelsBatch();
-          
-            //$Helpers->inspect($return);
+        }
+        catch(Exception $ex) {
+            $error = $ex;
+        }
+    }  
+    else if( isset($url) && isset($sel) && $go == 'url') {
+        try {
+            $doc = $Helpers->callHttpRequest($url, null, (object)["name"=>"Standalone"]);
+            $return = $Helpers->getElemValue($doc, $sel);
         }
         catch(Exception $ex) {
             $error = $ex;
@@ -76,14 +76,24 @@ if ( $rm == 'POST' ) {
         }
     </style>
 </head>
-<body>
+<body ng-app="app" ng-controller="MainCtrl">
     <header class="selector">
         <form name="hquery" action="" method="post">
-            <p><label>URL: <input type="text" name="url" value="<?=htmlspecialchars(@$url, ENT_QUOTES);?>" placeholder="ex. https://mariauzun.com/portfolio" autofocus class="form-control" /></label></p>
-            <p><label>Selector: <input type="text" name="sel" value="<?=htmlspecialchars(@$sel, ENT_QUOTES);?>" placeholder="ex. 'a[href] &gt; img[src]:parent'" class="form-control" /></label></p>
+           <p>
+              <label>Choose way to RUN: 
+                <select name="go" class="form-control"  ng-model="form.go" > 
+                  <option value="" selected disabled>Selecione..</option>
+                  <option value="url" >URL</option>
+                  <option value="json" >MODEL</option>
+                  <option value="cron" >Run Batch Models</option>
+                </select>
+              </label>
+            </p>
+            <p><label>URL:      <input ng-model="form.url" ng-disabled="form.go != 'url'" type="text" name="url" value="<?=htmlspecialchars(@$url, ENT_QUOTES);?>" placeholder="ex. https://mariauzun.com/portfolio" autofocus class="form-control" /></label></p>
+            <p><label>Selector: <input ng-model="form.sel" ng-disabled="form.go != 'url'"   type="text" name="sel" value="<?=htmlspecialchars(@$sel, ENT_QUOTES);?>" placeholder="ex. 'a[href] &gt; img[src]:parent'" class="form-control" /></label></p>
             <p>
               <label>Model: 
-                <select name="model" class="form-control">
+                <select name="model" class="form-control"  ng-model="form.model" ng-disabled="form.go != 'json'" > 
                   <option value="" selected disabled>Selecione..</option>
                   <?php foreach( $models as $model): ?>
                   <option value="<?= str_replace(".php","",$model);?>" ><?=$model;?></option>
@@ -93,11 +103,7 @@ if ( $rm == 'POST' ) {
             </p>
 
             <p>
-                <button type="submit" name="go" value="json" class="btn btn-success">Get by Model</button>
-                <button type="submit" name="go" value="elements" class="btn btn-success">Fetch elements</button>
-                <button type="submit" name="go" value="meta" class="btn btn-success">Fetch meta</button>
-                <button type="submit" name="go" value="source" class="btn btn-success">Fetch source</button>
-                <button type="submit" name="go" value="cron" class="btn btn-success">Run Cron</button>
+                <button type="submit" name="go" value="url" class="btn btn-success">RUN</button>
             </p>
 
             <?php if( !empty($error) ): ?>
@@ -120,76 +126,17 @@ if ( $rm == 'POST' ) {
             case 'json': 
                  echo '<pre style="word-break:break-word;">'.json_encode($return, JSON_PRETTY_PRINT)."</pre>"; 
             break;
-      
-            case 'elements': if(!empty($elements)):?>
-                <hr />
-                <table style="width: 100%">
-                    <thead><tr>
-                        <th>pos.</th>
-                        <th>html</th>
-                        <th>view</th>
-                    </tr></thead>
-                    <tbody>
-            <?php foreach($elements as $pos => $el): ?>
-                        <tr>
-                            <td><i class="col-xs-1"><?=$pos;?></i></td>
-                            <td><code style="word-break:break-word;"><?=htmlspecialchars($el->outerHtml(), ENT_QUOTES);?></code>&nbsp;</td>
-                            <td><?=$el->outerHtml();?></td>
-                        </tr>
-            <?php endforeach;?>
-                    </tbody>
-                </table>
-            <?php
-            endif;
-            break;
-
-            case 'meta':?>
-                <ul class="list-group">
-                    <li class="list-group-item">
-                        hQuery::$cache_path: <?php echo hQuery::$cache_path ?>
-                    </li>
-                    <li class="list-group-item">
-                        Size: <span data-name="doc.size" class="badge"><?=empty($doc)?'':$doc->size;?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">Read Time: <span class="badge"><span data-name="doc.read_time"><?php echo $doc->read_time?></span> ms</span><br /></li>
-                    <li class="list-group-item">Index Time: <span class="badge"><span data-name="doc.index_time"><?php echo $doc->index_time?></span> ms</span><br /></li>
-                    <li class="list-group-item">
-                        Charset: <span data-name="doc.charset" class="badge"><?=empty($doc)?'':$doc->charset;?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">
-                        Base URL: <span data-name="doc.base_url" class="badge"><?=empty($doc)?'':$doc->base_url;?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">
-                        Href: <span data-name="doc.href" class="badge"><?=empty($doc)?'':$doc->href;?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">
-                        Title: <span data-name="doc.title" class="badge"><?=empty($meta['title'])?'':$meta['title'];?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">
-                        Description: <span data-name="doc.description" class="badge"><?=empty($meta['description'])?'':$meta['description'];?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">
-                        Keywords: <span data-name="doc.keywords" class="badge"><?=empty($meta['keywords'])?'':$meta['keywords'];?></span>
-                        <br />
-                    </li>
-                    <li class="list-group-item">
-                        HTTP Headers: <pre data-name="doc.headers"><?=empty($meta['headers'])?'':$meta['headers'];?></pre>
-                    </li>
-                </ul>
-            <?php
-            break;
-
-            case 'source':?>
-                <pre><?=empty($doc)?'':htmlspecialchars($doc->html(), ENT_QUOTES);?></pre>
-            <?php
+            default:
+                echo '<pre style="word-break:break-word;">'.json_encode($return, JSON_PRETTY_PRINT)."</pre>"; 
             break;
         } ?>
     </section>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.7.9/angular.min.js"></script>
+  <script>
+      angular.module('app', [])
+        .controller('MainCtrl', ($scope) => {
+            $scope.form = {};
+        })
+  </script>
 </body>
 </html>

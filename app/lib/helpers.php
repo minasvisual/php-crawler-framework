@@ -2,6 +2,7 @@
 
 namespace Core;
 
+use \GuzzleHttp\Client;
 use duzun\hQuery;
 use \Exception;
 
@@ -44,72 +45,53 @@ class Helpers {
         return false;
       }
     }
-
-    public function log($data, $filename = 'system.log', $eng = FILE_APPEND )
-    {
-       if( $this->logging !== true ) return false;
-        
-       $log = json_encode(["timestamp" => date('c'), "level" => "log", "data" => $data]) ."\r\n";
-       return file_put_contents( $this->config->APP_PATH .'logs/'. ( isset($filename) ? $filename : 'system.log'), $log, $eng );
-    }
-  
-    public function error($data, $filename = 'system.log', $eng = FILE_APPEND )
-    {
-       if( $this->logging !== true ) return false;
-      
-       $log = json_encode(["timestamp" => date('c'), "level" => "error", "data" => $data ]) ."\r\n";
-       return file_put_contents( $this->config->APP_PATH .'logs/'. ( isset($filename) ? $filename : 'system.log'), $log, $eng );
-    }
-  
-    public function inspect($data)
-    {
-       if( $this->debug !== true ) return false;
-         
-       echo "<script>console.log('".json_encode($data)."');</script>";
-       return json_encode($data);
-    }
   
     function getElemValue($doc, $selector)
     {
-      if( !$doc ) return false;
-      if( $doc || !is_callable($doc->find) ) $doc = hQuery::fromHTML($doc->html());
+      try{
+          if( !$doc ) return false;
+          if( $doc || !is_callable($doc->find) ) $doc = hQuery::fromHTML($doc->html());
 
-      if( !isset($selector) && is_callable($doc->text) )
-      {
-        $content = trim($doc->text());
+          if( !isset($selector) && is_callable($doc->text) )
+          {
+            $content = trim($doc->text());
+          }
+          else if( isset($selector) && is_string($selector) )
+          {
+            $content = trim($doc->find($selector)->text());
+          }
+          else if ( is_array($selector) )
+          {
+            $how = isset($selector['how']) ? $selector['how'] : 'text';
+            $content = '';
+            $doc = $doc->find($selector['selector']);
+
+            if( isset($selector['child']) && isset($doc[ $selector['child'] ]) )
+              $doc = $doc[ $selector['child'] ];
+
+            if( isset($selector['attr']) )
+              $content = $doc->attr($selector['attr']);
+            else
+              $content = $doc->$how();
+
+            if( isset($selector['convert']) && is_callable($selector['convert']) )
+              $content = $selector['convert']($content);
+          }
+          else
+          {
+            $content = trim($doc->text());
+          }
+
+          if( isset($selector['trim']) ) $content = trim($content);
+
+          return $content;
+      }catch(Exception $e){
+          throw $e;
       }
-      else if( isset($selector) && is_string($selector) )
-      {
-        $content = trim($doc->find($selector)->text());
-      }
-      else if ( is_array($selector) )
-      {
-        $how = isset($selector['how']) ? $selector['how'] : 'text';
-        $content = '';
-        $doc = $doc->find($selector['selector']);
-
-        if( isset($selector['child']) && isset($doc[ $selector['child'] ]) )
-          $doc = $doc[ $selector['child'] ];
-
-        if( isset($selector['attr']) )
-          $content = $doc->attr($selector['attr']);
-        else
-          $content = $doc->$how();
-
-        if( isset($selector['convert']) && is_callable($selector['convert']) )
-          $content = $selector['convert']($content);
-      }
-      else
-      {
-        $content = trim($doc->text());
-      }
-
-      if( isset($selector['trim']) ) $content = trim($content);
-
-      return $content;
     }
 
-    function getItemsValue($item, $selectors){
+    function getItemsValue($item, $selectors)
+    {
        $content = [];
        if( !is_array($selectors) ) return false;
        foreach($selectors as $chave => $selector)
@@ -172,7 +154,7 @@ class Helpers {
           $model = $response['model'];
           $this->log($response, $model->name);
         
-          $doc = $this->callHquery($rowUrl, null, $model);
+          $doc = $this->callHttpRequest($rowUrl, null, $model);
 
           $this->log("Initialized Task Url $model->name batch - URL $rowUrl", $model->name);
         
@@ -223,26 +205,61 @@ class Helpers {
       }
     }
   
-    function callHquery($url, $config, $model)
+    function callHttpRequest($url, $config, $model)
     {
       try{
-        // Enable cache
-        $cacheDir =  '/hQuery/';
-        $config = isset($config) ? $config: [
+        $defaultConfig = [
           "headers" => [
             'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36',
             'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
             'Upgrade-Insecure-Requests' => 1,
           ]
         ];
+        // Enable cache
+        $cacheDir =  '/hQuery/';
+        $config = isset($config) ? array_merge($defaultConfig, $config): $defaultConfig;
         
         hQuery::$cache_path = sys_get_temp_dir() . $cacheDir;
 
-        return hQuery::fromUrl( $url, $config['headers'] );
+        $client = new \GuzzleHttp\Client($config);
+        $res = $client->get($url);
+        //$this->inspect($res->getHeader('content-type')[0]);
+        //file_put_contents( __DIR__ . "/../logs/gzze.html", trim($res->getBody()->getContents()));
+        //return hQuery::fromUrl( $url, $config['headers'] );
+        if( $res->getStatusCode() < 200 || $res->getStatusCode() > 399 ) 
+            throw new Exception("Request failed with status ". $res->getStatusCode(), $res->getBody()->getContents());
+          
+        return hQuery::fromHTML( trim($res->getBody()->getContents()), $url);
+        //return hQuery::fromUrl( $url, $config['headers'] );
       }catch(Exception $err){
         $this->error(["message"=> "Request error $model->name ", "url"=>$url, "model"=>$model]);
+        $this->error($err);
         throw $err;
       }
+    }
+  
+    public function inspect($data)
+    {
+       if( $this->debug !== true ) return false;
+         
+       echo "<script>console.log('".json_encode($data)."');</script>";
+       return json_encode($data);
+    }
+ 
+    public function log($data, $filename = 'system.log', $eng = FILE_APPEND )
+    {
+       if( $this->logging !== true ) return false;
+        
+       $log = json_encode(["timestamp" => date('c'), "level" => "log", "data" => $data]) ."\r\n";
+       return file_put_contents( $this->config->APP_PATH .'logs/'. ( isset($filename) ? $filename : 'system.log'), $log, $eng );
+    }
+  
+    public function error($data, $filename = 'system.log', $eng = FILE_APPEND )
+    {
+       if( $this->logging !== true ) return false;
+      
+       $log = json_encode(["timestamp" => date('c'), "level" => "error", "data" => $data ]) ."\r\n";
+       return file_put_contents( $this->config->APP_PATH .'logs/'. ( isset($filename) ? $filename : 'system.log'), $log, $eng );
     }
 
 }

@@ -26,9 +26,9 @@ $scheduler = new Scheduler([
 ]);
 
 $scheduler->call(function () use ($Helpers){
-    $Helpers->log("Cron executado as ".date(c), 'cron');
-    return true;
-})->everyMinute(5)->output('./file.txt')->email(['mantovaniarts@hotmail.com']);
+    $Helpers->log("Cron executado as ".date('c'), 'cron');
+    return "Cron executado as ".date('c');
+})->everyMinute(5)->output('./app/logs/cron.log')->email($config->smtp['to']);
 
 // Let the scheduler execute jobs which are due.
 $scheduler->run();
