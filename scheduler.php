@@ -20,16 +20,15 @@ $scheduler = new Scheduler([
         'subject' => 'Teste Email',
         'from' => $config->smtp['from'],
         'body' => 'This is the daily visitors count',
-        'transport' =>  Swift_Mailer($transport),
+        'transport' => new Swift_Mailer($transport),
         'ignore_empty_output' => false,
     ]
 ]);
 
-// ... configure the scheduled jobs (see below) ..
 $scheduler->call(function () use ($Helpers){
     $Helpers->log("Cron executado as ".date(c), 'cron');
     return true;
-})->everyMinute(5)->email(['mantovaniarts@hotmail.com']);
+})->everyMinute(5)->output('./file.txt')->email(['mantovaniarts@hotmail.com']);
 
 // Let the scheduler execute jobs which are due.
 $scheduler->run();

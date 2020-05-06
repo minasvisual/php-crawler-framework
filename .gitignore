@@ -35,8 +35,10 @@ phpunit*.phar
 *.bak
 
 old/
-app/logs/
-app/models/
+app/logs/*
+app/models/*
+!app/models/.gitkeep 
+!app/logs/.gitkeep 
 config.php
 
 .htaccess
