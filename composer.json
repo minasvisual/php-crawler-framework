@@ -1,0 +1,25 @@
+{
+    "name": "minasvisual/php-crawler-framework",
+    "type": "project",
+    "license": "mit",
+    "description": "/opt/php71/bin/php ../../composer.phar require ...",
+    "authors": [
+        {
+            "name": "Ulisses",
+            "email": "mantovaniarts@hotmail.com"
+        }
+    ],
+    "require": {
+        "php-http/guzzle6-adapter": "^1.1",
+        "php-http/message": "^1.7",
+        "duzun/hquery": "^3.0",
+        "peppeocchi/php-cron-scheduler": "^3.0",
+        "swiftmailer/swiftmailer": "^6.0" 
+    },
+    "autoload": {
+        "classmap": [
+            "app/lib/helpers.php",
+            "app/lib/engine.php"
+        ]
+    }
+}
