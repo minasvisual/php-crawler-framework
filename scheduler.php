@@ -17,10 +17,10 @@ $transport = (new Swift_SmtpTransport($config->smtp['host'], $config->smtp['port
 // Create a new scheduler
 $scheduler = new Scheduler([
     'email' => [
-        'subject' => 'MinasVisual',
+        'subject' => 'Teste Email',
         'from' => $config->smtp['from'],
         'body' => 'This is the daily visitors count',
-        'transport' => $transport,
+        'transport' =>  Swift_Mailer($transport),
         'ignore_empty_output' => false,
     ]
 ]);
