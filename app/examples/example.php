@@ -11,7 +11,7 @@ return (object) [
   "status" => true,
   "debug" => true,
   "log" => true,
-  "schedule" => '0 */2 * * * *',
+  "schedule" => '2 * * * *',
   "header" => [],
   "tasks" => [
       ["url" => "https://ionicabizau.net"],

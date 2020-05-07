@@ -24,6 +24,7 @@ return (object) [
       'username'   => '',
       'password' => '',
       'secure' => '',
-      'from'    => '',
+      'from'    => '', // should contains same domain of host
+      'to'    => '', // system adminsitrator reports
   ]
 ];

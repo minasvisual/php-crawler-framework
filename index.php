@@ -5,6 +5,8 @@ require_once $config->ROOT_PATH . "vendor/autoload.php";
 
 use Core\Engine;
 use Core\Helpers;
+use Core\Mailer;
+use Core\Database;
 
 $Engine = new Engine($config);
 $Helpers = new Helpers($config);
@@ -18,6 +20,7 @@ $go  = @$_POST['go']  ?: @$_GET['go'];
 $rm = strtoupper(getenv('REQUEST_METHOD') ?: $_SERVER['REQUEST_METHOD']);
 
 // var_export(compact('url', 'sel', 'go')+[$rm]+$_SERVER);
+$Helpers->inspect($_REQUEST);
 if ( $rm == 'POST' ) {
     // Results acumulator
     $return = array();
@@ -43,6 +46,37 @@ if ( $rm == 'POST' ) {
         try {
             $doc = $Helpers->callHttpRequest($url, null, (object)["name"=>"Standalone"]);
             $return = $Helpers->getElemValue($doc, $sel);
+        }
+        catch(Exception $ex) {
+            $error = $ex;
+        }
+    } 
+    else if( $go == 'mail') {
+        try {
+            $Helpers->inspect("Entrou em mail");
+            $Mailer = new Mailer($config);
+            $message = $Mailer->newMessage();
+            $return = $Mailer->send( 
+                  $message->setFrom([ $config->smtp['from'] => "Crawler Framework"])
+                      ->setTo([ $config->smtp['to'] ])
+                      ->setBody('Here is the message itself') 
+            );
+          
+            $Helpers->inspect($return);
+        }
+        catch(Exception $ex) {
+            $error = $ex;
+        }
+    }
+    else if( $go == 'db') {
+        try {
+            $db = new Database($config);
+            
+            $conn = $db->connect('mysql1');
+          
+            //$return = $db->newModel('');
+          
+            $Helpers->inspect($return);
         }
         catch(Exception $ex) {
             $error = $ex;
@@ -86,6 +120,8 @@ if ( $rm == 'POST' ) {
                   <option value="url" >URL</option>
                   <option value="json" >MODEL</option>
                   <option value="cron" >Run Batch Models</option>
+                  <option value="mail" >Test Mailer</option>
+                  <option value="db" >Test DB Connection</option>
                 </select>
               </label>
             </p>
@@ -103,7 +139,7 @@ if ( $rm == 'POST' ) {
             </p>
 
             <p>
-                <button type="submit" name="go" value="url" class="btn btn-success">RUN</button>
+                <button type="submit" class="btn btn-success">RUN</button>
             </p>
 
             <?php if( !empty($error) ): ?>
