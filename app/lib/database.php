@@ -7,50 +7,98 @@ namespace Core;
 use \GuzzleHttp\Client;
 use \Exception;
 use \Core\Helpers;
+use \PDO;
 
-class Database {
-    public $config;
-    public $client;
-    public $con;
+class Database extends \PDO
+{
+	private $config;
   
-    public $defaultConfig = [
-          "headers" => [
-            'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36',
-            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'Upgrade-Insecure-Requests' => 1,
-          ]
-    ];
-  
-    public function __construct($config=null)
-    {
-      $this->config = isset($config) ? $config : (include_once "../../config.php");
-
-      $this->client = new \TORM\Model();
+	public function __construct($config = null, $dbKey)
+	{
+    $this->config = isset($config) ? $config : (include __DIR__."/../../config.php");
+    $db = $this->config->db[$dbKey];
+		parent::__construct($db['driver'].':host='.$db['host'].';dbname='.$db['database'], $db['username'], $db['password']);
+	}
+	
+	public function select($sql, $array = array(), $fetchMode = PDO::FETCH_ASSOC)
+	{
+		$sth = $this->prepare($sql);
+		foreach ($array as $key => $value) {
+			$sth->bindValue("$key", $value);
+		}
+		
+		if(!$sth->execute()){
+			$this->handleError();
+			}
+		else{
+		return $sth->fetchAll($fetchMode);
+		}
+	}
+	
+	public function insert($table, $data)
+	{
+		ksort($data);
+		
+		$fieldNames = implode('`, `', array_keys($data));
+		$fieldValues = ':' . implode(', :', array_keys($data));
+		
+		$sth = $this->prepare("INSERT INTO $table (`$fieldNames`) VALUES ($fieldValues)");
+		
+		foreach ($data as $key => $value) {
+			$sth->bindValue(":$key", $value);
+		}
+		
+		if(!$sth->execute()){
+			return $sth->errorInfo();
+			//print_r($sth->errorInfo());
+		}else{
+      return $this->lastInsertId();
     }
-  
-    public function connect($dbKey){
-      $db = $this->config->db[$dbKey];
-      if( !isset($db) ) throw new Exception("Connection dont exists");
-      
-      try{
-        $this->con = new \PDO(sprintf("%s:host=%s;port=%s;dbname=%s", $db['driver'], $db['host'],$db['port'], $db['database']), $db['username'], $db['password']);
-        \TORM\Connection::setConnection($this->con);
-        \TORM\Connection::setDriver($db['driver']);
-      }catch(Exception $err){
-        throw $err;
-      }
-      $this->con;
-    }
-  
-//     public function newModel($name){
-      
-//             (new ClassEventsDev()) extends \TORM\Model { }
-            
-//             EventsDev::setTableName('events');
-//             EventsDev::setPK('id');
-//             EventsDev::setIgnoreCase(true);
-          
-//             return  EventsDev::find(145);
-          
-//     }
+	}
+	
+	public function update($table, $data, $where)
+	{
+		ksort($data);
+		
+		$fieldDetails = NULL;
+		foreach($data as $key=> $value) {
+			$fieldDetails .= "`$key`=:$key,";
+		}
+		$fieldDetails = rtrim($fieldDetails, ',');
+		
+		$sth = $this->prepare("UPDATE $table SET $fieldDetails WHERE $where");
+		
+		foreach ($data as $key => $value) {
+			$sth->bindValue(":$key", $value);
+		}
+		
+		$sth->execute();
+    
+    return $sth->lastInsertId();
+	}
+	
+	public function delete($table, $where, $limit = 1)
+	{
+		return $this->exec("DELETE FROM $table WHERE $where LIMIT $limit");
+	}
+	
+	/* count rows*/
+	public function rowsCount($table){
+			$sth = $this->prepare("SELECT * FROM ".$table);
+			$sth->execute();
+			return $sth -> rowCount(); 
+		}
+	
+	/* error check */
+	private function handleError()
+	{
+		if ($this->errorCode() != '00000')
+		{
+			if ($this->_errorLog == true)
+			//Log::write($this->_errorLog, "Error: " . implode(',', $this->errorInfo()));
+			echo json_encode($this->errorInfo());
+			throw new Exception("Error: " . implode(',', $this->errorInfo()));
+		}
+	}
+	
 }

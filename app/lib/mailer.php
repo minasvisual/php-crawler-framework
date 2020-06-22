@@ -13,7 +13,7 @@ class Mailer {
   
     public function __construct($config=null)
     {
-      $this->config = isset($config) ? $config : (include_once "../../config.php");
+      $this->config = isset($config) ? $config : (include __DIR__ . "/../../config.php");
 
       $this->transport = (new \Swift_SmtpTransport(
               $this->config->smtp['host'], 
@@ -27,8 +27,8 @@ class Mailer {
       $this->mailer = new \Swift_Mailer($this->transport);
     }
   
-    public function newMessage(){
-      return (new \Swift_Message());
+    public function newMessage($subject = ''){
+      return (new \Swift_Message($subject))->setFrom([$this->config->smtp['from']]);
     }
   
     public function send($message){

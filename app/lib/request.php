@@ -21,7 +21,7 @@ class Request {
   
     public function __construct($config=null)
     {
-      $this->config = isset($config) ? $config : (include_once "../../config.php");
+      $this->config = isset($config) ? $config : (include_once __DIR__."/../../config.php");
 
       $this->client = new \GuzzleHttp\Client($this->defaultConfig);
     }

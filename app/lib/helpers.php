@@ -75,7 +75,7 @@ class Helpers {
         if( $res->getStatusCode() < 200 || $res->getStatusCode() > 399 ) 
             throw new Exception("Request failed with status ". $res->getStatusCode(), $res->getBody()->getContents());
           
-        return hQuery::fromHTML( trim($res->getBody()->getContents()), $url);
+        return [ hQuery::fromHTML( trim($res->getBody()->getContents()), $url), $res ];
         //return hQuery::fromUrl( $url, $config['headers'] );
       }catch(Exception $err){
         $this->error(["message"=> "Request error $model->name ", "url"=>$url, "model"=>$model]);
@@ -88,7 +88,7 @@ class Helpers {
     {
        if( $this->debug !== true ) return false;
          
-       echo "<script>console.log('".json_encode($data)."');</script>";
+       echo "<script>console.log('".json_encode($data)."');</script>\r\n";
        return json_encode($data);
     }
  

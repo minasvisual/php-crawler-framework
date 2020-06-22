@@ -24,22 +24,24 @@ $scheduler = new Scheduler([
         'ignore_empty_output' => false,
     ]
 ]);
+
 foreach( $models as $modelName )
 {
   $model = $Helpers->getModel($modelName);
-  if( $model && isset($model->schedule) )
+  if( isset($model) && isset($model->schedule) )
   {
+    $Helpers->inspect("Initialized CRON Schedule of ".$model->schedule);
     $scheduler->call(function() use ($Engine, $Helpers, $model, $modelName) {
-        $Helpers->log("Initialized CRON Schedule of ".$modelName);
+        $Helpers->log("------------------------------ \r\n Initialized CRON Schedule of ".$modelName);
         $Engine->processModel($modelName);
-    })->at($model->schedule);
+        return true;
+    })->at($model->schedule)->output( __DIR__.'/app/logs/cron.txt');
   }
 }
-  
-$scheduler->call(function () use ($Helpers) {
-    $Helpers->log("Cron executado as ".date('c'), 'cron');
-    return "Cron executado as ".date('c');
-})->everyMinute(5)->output('./app/logs/cron.txt')->email([$config->smtp['to']]);
 
+$scheduler->call(function() use ($Engine, $Helpers) {
+        $Helpers->log(" -------------- Cron called -------------", 'cron.txt');
+        return true;
+})->at('* * * * *');
 // Let the scheduler execute jobs which are due.
 $scheduler->run();

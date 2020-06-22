@@ -135,14 +135,14 @@ class Engine{
     function getElemValue($doc, $selector)
     {
       try{
-          if( !$doc ) return false;
-          if( $doc || !is_callable($doc->find) ) $doc = hQuery::fromHTML($doc->html());
+          if( !$doc || !isset($doc) ) return false;
+          if( !empty($doc) || empty($doc->find($selector)) ) $doc = hQuery::fromHTML($doc->html());
 
           if( !isset($selector) && is_callable($doc->text) )
           {
             $content = trim($doc->text());
           }
-          else if( isset($selector) && is_string($selector) )
+          else if( isset($selector) && is_string($selector) && !empty($doc->find($selector)) )
           {
             $content = trim($doc->find($selector)->text());
           }
@@ -163,9 +163,13 @@ class Engine{
             if( isset($selector['convert']) && is_callable($selector['convert']) )
               $content = $selector['convert']($content);
           }
-          else
+          else if( isset($doc) && !empty($doc->text()) )
           {
             $content = trim($doc->text());
+          }
+          else
+          {
+            $content = "";
           }
 
           if( isset($selector['trim']) ) $content = trim($content);
@@ -240,7 +244,7 @@ class Engine{
           $model = $response['model'];
           $this->Helpers->log($response, $model->name);
         
-          $doc = $this->Helpers->callHttpRequest($rowUrl, null, $model);
+          [$doc, $res] = $this->Helpers->callHttpRequest($rowUrl, null, $model);
 
           $this->Helpers->log("Initialized Task Url $model->name batch - URL $rowUrl", $model->name);
         
@@ -250,7 +254,7 @@ class Engine{
               
               if( isset($model->success) && is_callable($model->success) )
                     call_user_func_array($model->success, [
-                      [ "data" => $return, "response" => $doc ]
+                      [ "url" => $rowUrl, "data" => $return, "doc" => $doc , "response" => $res]
                     ]);
           }
           else 

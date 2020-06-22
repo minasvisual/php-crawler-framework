@@ -16,7 +16,8 @@
         "peppeocchi/php-cron-scheduler": "^3.0",
         "swiftmailer/swiftmailer": "^6.0",
         "guzzlehttp/guzzle": "~6.0",
-        "taq/torm": "^1.3" 
+        "taq/torm": "^1.3",
+        "arojunior/php-orm-pdo": "^1.1" 
     },
     "autoload": {
         "classmap": [

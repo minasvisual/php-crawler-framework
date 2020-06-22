@@ -44,8 +44,14 @@ if ( $rm == 'POST' ) {
     }  
     else if( isset($url) && isset($sel) && $go == 'url') {
         try {
-            $doc = $Helpers->callHttpRequest($url, null, (object)["name"=>"Standalone"]);
-            $return = $Helpers->getElemValue($doc, $sel);
+            $return = $Engine->callScraper($url, [
+                "model" => (object) [
+                    "name" =>"Standalone",
+                    "schema" => [
+                        "title" => ".header h1",
+                    ]
+                ]
+            ]);
         }
         catch(Exception $ex) {
             $error = $ex;

@@ -1,5 +1,9 @@
 # UNDER CONSTRUCTION
 
+## Requirements
+
+- PHP >= 7.1
+
 ## Installation
 
 1. Clone this repository
@@ -88,6 +92,60 @@ return (object) [
   }
   // export
 ];
+/* OUTPUT
+{
+    "response": [
+        {
+            "title": "Ionic\u0103 Biz\u0103u",
+            "desc": "Programmer,  Pianist,  Jesus follower",
+            "avatar": "\/@\/bloggify\/public\/images\/logo.png",
+            "pages": [
+                "Blog",
+                "About",
+                "FAQ",
+                "Training",
+                "Donate",
+                "Contact",
+                "CV"
+            ],
+            "active": "\/faq",
+            "nav": [
+                {
+                    "title": "Blog",
+                    "url": "\/"
+                },
+                {
+                    "title": "About",
+                    "url": "\/about"
+                },
+                {
+                    "title": "FAQ",
+                    "url": "\/faq"
+                },
+                {
+                    "title": "Training",
+                    "url": "\/training"
+                },
+                {
+                    "title": "Donate",
+                    "url": "\/donate"
+                },
+                {
+                    "title": "Contact",
+                    "url": "\/contact"
+                },
+                {
+                    "title": "CV",
+                    "url": "\/cv"
+                }
+            ],
+            "header": "Ionic\u0103 Biz\u0103u"
+        },
+        "OK"
+    ],
+    "select_time": 0.00032806396484375
+} */
+
 ```
 
 ## Thirty part libs
