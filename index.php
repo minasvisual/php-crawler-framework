@@ -1,12 +1,13 @@
 <?php
 $config = include_once "./config.php";
-
+include_once "./app/lib/simple_html_dom.php";
 require_once $config->ROOT_PATH . "vendor/autoload.php";
 
 use Core\Engine;
 use Core\Helpers;
 use Core\Mailer;
 use Core\Database;
+use duzun\hQuery;
 
 $Engine = new Engine($config);
 $Helpers = new Helpers($config);
@@ -20,7 +21,6 @@ $go  = @$_POST['go']  ?: @$_GET['go'];
 $rm = strtoupper(getenv('REQUEST_METHOD') ?: $_SERVER['REQUEST_METHOD']);
 
 // var_export(compact('url', 'sel', 'go')+[$rm]+$_SERVER);
-$Helpers->inspect($_REQUEST);
 if ( $rm == 'POST' ) {
     // Results acumulator
     $return = array();
@@ -29,6 +29,7 @@ if ( $rm == 'POST' ) {
     if($modelName && $go == 'json') {
         try {
             $return = $Engine->processModel($modelName);
+            var_dump($return);
         }
         catch(Exception $ex) {
             $error = $ex;
@@ -88,6 +89,26 @@ if ( $rm == 'POST' ) {
             $error = $ex;
         }
     }
+    else if( $go == 'encoding') {
+        try {
+//             $ch = curl_init("https://www.clubedoingresso.com/evento/1americanatattoofestival09");
+//             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+//             curl_setopt($ch, CURLOPT_BINARYTRANSFER, true);
+//             $content = curl_exec($ch);
+//             curl_close($ch);
+            [$doc, $req] = $Helpers->callHttpRequest("https://www.clubedoingresso.com/evento/1americanatattoofestival09", null, ['name'=>"teste"]);
+          
+            $return = $Engine->getElemValue(
+                hQuery::fromHTML( $doc, '' ), 
+                ['selector' => ".event-details-area .event-info .heading"]
+            );
+            //$return = str_get_html($content)->find('.event-details-area .event-info .heading', 0)->plaintext;
+            $Helpers->inspect( $return );
+        }
+        catch(Exception $ex) {
+            $error = $ex;
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -128,6 +149,7 @@ if ( $rm == 'POST' ) {
                   <option value="cron" >Run Batch Models</option>
                   <option value="mail" >Test Mailer</option>
                   <option value="db" >Test DB Connection</option>
+                  <option value="encoding" >Encoding</option>
                 </select>
               </label>
             </p>

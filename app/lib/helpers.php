@@ -14,7 +14,18 @@ class Helpers {
   
     public function __construct($config)
     {
-      $this->config =  $config ?: (include_once __DIR__ . '/../../config.php');
+      $this->config = isset($config) ? $config : (include __DIR__ . "/../../config.php");
+    }
+  
+    function get($data, $string, $default = null){
+        $arrStr = explode('.', $string);
+        if( !is_array($arrStr) ) $arrStr = [$arrStr];
+        $result = $data;
+        foreach($arrStr as $lvl){
+          if( !empty($lvl) && isset($result[$lvl]) ) $result = $result[$lvl];
+          else $result = $default; 
+        }
+        return $result;
     }
     
     public function setConfig($name, $value)
@@ -74,8 +85,11 @@ class Helpers {
         
         if( $res->getStatusCode() < 200 || $res->getStatusCode() > 399 ) 
             throw new Exception("Request failed with status ". $res->getStatusCode(), $res->getBody()->getContents());
+
+        $doc = $res->getBody()->getContents();
+        // INIT OPTIONS
           
-        return [ hQuery::fromHTML( trim($res->getBody()->getContents()), $url), $res ];
+        return [ hQuery::fromHTML( $doc, $url), $res ];
         //return hQuery::fromUrl( $url, $config['headers'] );
       }catch(Exception $err){
         $this->error(["message"=> "Request error $model->name ", "url"=>$url, "model"=>$model]);

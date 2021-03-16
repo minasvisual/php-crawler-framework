@@ -44,3 +44,4 @@ config.php
 .htaccess
 composer.lock
 error_log
+node
